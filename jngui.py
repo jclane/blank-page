@@ -3,6 +3,7 @@ import tkinter.scrolledtext as tkst
 from tkinter import ttk, messagebox, filedialog, font
 from os.path import basename, dirname, realpath, join
 from string import whitespace
+from webbrowser import open_new
 
 from jnlogic import File
 
@@ -80,7 +81,7 @@ class MenuBar(tk.Menu):
 
         self.help_menu = tk.Menu(self, tearoff=False)
         self.help_menu.add_command(label="Help [coming soon]")
-        self.help_menu.add_command(label="About jNotes [coming soon]")
+        self.help_menu.add_command(label="About jNote", command=self.open_about_window)
         self.add_cascade(label="Help", menu=self.help_menu)     
                 
     def set_button_state(self, evt, master): 
@@ -213,6 +214,9 @@ class MenuBar(tk.Menu):
         of the scrolledtext widget.
         """
         self.font_popup = FontWindow(master)
+        
+    def open_about_window(self):
+        self.about_popup = AboutWindow()
        
         
 class StatusBar(tk.Frame):
@@ -256,7 +260,6 @@ class StatusBar(tk.Frame):
         self.curr_col.set(self.position[1])
 
         
-
 class FontWindow(tk.Toplevel):
     
     def __init__(self, master):
@@ -360,11 +363,33 @@ class FontWindow(tk.Toplevel):
         self.destroy()
 
         
-class AboutWindow(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
+class AboutWindow(tk.Toplevel):
+    def __init__(self):
+        tk.Toplevel.__init__(self)
+        self.title("About jNote")
+        self.resizable(0, 0)
         
-        tk.Label(text="jNote", font="bold").grid(column=0, row=0)
+        self.about_frame = tk.Frame(self)
+        self.about_frame.grid(column=0, row=0)
+               
+        tk.Label(self.about_frame, text="jNote", font="bold").grid(column=0, row=0)
+        ttk.Separator(self.about_frame).grid(column=0, row=1, columnspan=2, sticky="ew")
+        tk.Label(self.about_frame, text="Author: ").grid(column=0, row=2)
+        tk.Label(self.about_frame, text="Justin Lane").grid(column=1, row=2, sticky="w")
+        tk.Label(self.about_frame, text="Website: ").grid(column=0, row=3)
+        self.link1 = tk.Label(self.about_frame, text="https://github.com/jclane/jnote", fg="blue", cursor="hand2")
+        self.link1.grid(column=1, row=3, sticky="w")
+        
+        tk.Label(self.about_frame, text="License: ").grid(column=0, row=4)
+        tk.Label(self.about_frame, text="GNU General Public License").grid(column=1, row=4, sticky="w")
+        self.link2 = tk.Label(self.about_frame, text="https://github.com/jclane/jnote/blob/master/LICENSE", fg="blue", cursor="hand2")
+        self.link2.grid(column=1, row=5, sticky="w")
+        
+        self.link1.bind("<Button-1>", self.open_website)
+        self.link2.bind("<Button-1>", self.open_website)
+        
+    def open_website(self, evt):
+        open_new(evt.widget.cget("text"))
 
 if __name__ == "__main__":
     app = Main()
