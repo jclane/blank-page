@@ -271,7 +271,7 @@ class MenuBar(tk.Menu):
         of the scrolledtext widget.
         """
         self.font_popup = FontWindow(master)
-
+               
     def toggle_statusbar(self, master):
         """Toggles the status bar at the bottom of the window."""
         if not self.statusbar_var.get():
@@ -333,7 +333,6 @@ class StatusBar(tk.Frame):
         self.char_count.set(len(master.text_entry.get("1.0", tk.END)) - 1)
         self.curr_line.set(self.position[0])
         self.curr_col.set(self.position[1])
-
 
 class FontWindow(tk.Toplevel):
 
@@ -459,13 +458,12 @@ class FontWindow(tk.Toplevel):
                                  self.size_var.get(), self.style_var.get()))
         self.destroy()
 
-
+        
 class AboutWindow(tk.Toplevel):
     def __init__(self):
         tk.Toplevel.__init__(self)
         self.title("About jNote")
         self.resizable(0, 0)
-
         self.about_frame = tk.Frame(self)
         self.about_frame.grid(column=0, row=0)
 
