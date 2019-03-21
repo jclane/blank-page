@@ -8,63 +8,66 @@ from webbrowser import open_new
 from logic import CustomDateTime, File
 
 
-class Main(tk.Tk): # gtg
+class Main(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.wm_geometry("800x600")
         self.curr_file = None
-
-        self.text_entry = tkst.ScrolledText()
-
-        self.menu = MenuBar(self)
-        self.config(menu=self.menu)
-
+        
         self.container = tk.Frame(self)
         self.container.pack(expand=True, fill="both")
-
+        self.text = CustomText(self.container)
+        self.menu = MenuBar(self)
+        self.config(menu=self.menu)
+        
         self.status_bar = StatusBar(self)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.menu.new_file(self)
+        self.menu.new_file()
+        
+        self.text.bind("<F5>", self.menu.insert_datetime)
+        
+        self.text.bind("<Enter>", self.menu.set_button_state)
+        self.text.bind("<Leave>", self.menu.set_button_state)
+        self.text.bind("<<Modified>>", self.menu.set_button_state)
 
-        self.text_entry.bind("<Enter>",
-                             lambda evt,
-                             master=self:
-                             self.menu.set_button_state(evt, master))
-        self.text_entry.bind("<Leave>",
-                             lambda evt,
-                             master=self:
-                             self.menu.set_button_state(evt, master))
-        self.text_entry.bind("<<Modified>>",
-                             lambda evt,
-                             master=self:
-                             self.menu.set_button_state(evt, master))
+        #self.bind_all("<Control-a>", lambda evt,
+        #              master=self: self.menu.select_all(self.master))
+        #self.bind_all("<Control-s>", lambda evt,
+        #              master=self: self.menu.save_file(self.master))
+        #self.bind_all("<Control-n>", lambda evt,
+        #              master=self: self.menu.new_file(self.master))
+        #self.bind_all("<Control-o>", lambda evt,
+        #              master=self: self.menu.open_file(self.master))
 
-        self.bind_all("<Control-a>", lambda evt,
-                      master=self: self.menu.select_all(master))
-        self.bind_all("<Control-s>", lambda evt,
-                      master=self: self.menu.save_file(master))
-        self.bind_all("<Control-n>", lambda evt,
-                      master=self: self.menu.new_file(master))
-        self.bind_all("<Control-o>", lambda evt,
-                      master=self: self.menu.open_file(master))
-
+        
     def setup(self):
         """
-        Currently this only sets the title for the window 
-        and gives focus to 'text_entry'.
+        Currently this only sets the title for the window
+        and gives focus to 'text'.
         Planned to do more later.
         """
-        self.title("Just Write (working title) - " + self.curr_file.file_name)
-        self.text_entry.focus_force()
+        self.title("Blank Page (working title) - " + self.curr_file.file_name)
+        self.text.focus_force()
 
+    def add_scrolledtext(self):
+        """
+        Adds the scrolledtext box to the container frame.
+        """
+        if self.text and self.text.winfo_exists():
+            self.text.destroy()
+        self.text = CustomText(self.container)
+                                         
+        self.text.pack(expand=True, fill="both")
+            
+            
 class MenuBar(tk.Menu):
 
     def __init__(self, master):
         tk.Menu.__init__(self, master)
-
+        self.master = master
         self.wrap_var = tk.StringVar()
         self.wrap_var.set("none")
         self.statusbar_var = tk.BooleanVar()
@@ -72,68 +75,53 @@ class MenuBar(tk.Menu):
 
         self.file_menu = tk.Menu(self, tearoff=False)
         self.file_menu.add_command(label="New",
-                                   command=lambda: self.new_file(master),
+                                   command=self.new_file,
                                    accelerator="Ctrl+N")
         self.file_menu.add_command(label="Open",
-                                   command=lambda: self.open_file(master),
+                                   command=self.open_file,
                                    accelerator="Ctrl+O")
         self.file_menu.add_command(label="Save",
-                                   command=lambda: self.save_file(master),
+                                   command=self.save_file,
                                    accelerator="Ctrl+S", state="disabled")
         self.file_menu.add_command(label="Save As...",
-                                   command=lambda: self.saveas_file(master))
+                                   command=self.saveas_file)
         self.file_menu.add_separator()
         self.file_menu.add_cascade(label="Quit",
-                                   command=lambda: master.destroy())
+                                   command=master.destroy)
         self.add_cascade(label="File", menu=self.file_menu)
 
         self.edit_menu = tk.Menu(self, tearoff=False)
-        self.edit_menu.add_command(label="Undo",
-                                   command=lambda master=master:
-                                   self.undo(master),
+        self.edit_menu.add_command(label="Undo", command=self.undo,
                                    accelerator="Ctrl+Z", state="disabled")
-        self.edit_menu.add_command(label="Redo",
-                                   command=lambda master=master:
-                                   self.redo(master), accelerator="Ctrl+R",
-                                   state="disabled")
+        self.edit_menu.add_command(label="Redo", command= self.redo, 
+                                   accelerator="Ctrl+Y", state="disabled")
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Cut",
-                                   command=lambda master=master:
-                                   self.cut(master), accelerator="Ctrl+X")
+                                   command=self.cut, accelerator="Ctrl+X")
         self.edit_menu.add_command(label="Copy",
-                                   command=lambda master=master:
-                                   self.copy(master), accelerator="Ctrl+C")
+                                   command=self.copy, accelerator="Ctrl+C")
         self.edit_menu.add_command(label="Paste",
-                                   command=lambda master=master:
-                                   self.paste(master), accelerator="Ctrl+V")
+                                   command=self.paste, accelerator="Ctrl+V")
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Select All",
-                                   command=lambda master=master:
-                                   self.select_all(master),
+                                   command=self.select_all,
                                    accelerator="Ctrl+A", state="disabled")
         self.add_cascade(label="Edit", menu=self.edit_menu)
-        
+
         self.insert_menu = tk.Menu(self, tearoff=False)
-        self.dt_submenu = tk.Menu(self, tearoff=False)
-        self.dt_submenu.add_command(label="Time",
-                           command=lambda master=master:
-                           self.insert_time(master), accelerator="F5")
-        self.dt_submenu.add_command(label="Date",
-                           command=lambda master=master:
-                           self.insert_date(master), accelerator="F6")     
-        self.dt_submenu.add_command(label="Date & Time",
-                            command=lambda master=master:
-                            self.insert_datetime(master), accelerator="F7")
-        self.insert_menu.add_cascade(label="Date & Time", menu=self.dt_submenu)
-        self.add_cascade(label="Insert", menu=self.insert_menu)                           
+        self.insert_menu.add_command(label="Date & Time",
+                            command=self.insert_datetime, accelerator="F5")
+        self.add_cascade(label="Insert", menu=self.insert_menu)
 
         self.format_menu = tk.Menu(self, tearoff=False)
         self.format_menu.add_checkbutton(label="Word Wrap",
-                                         command=lambda master=master:
-                                         self.toggle_wrap(master))
+                                         command=self.toggle_wrap)
         self.format_menu.add_command(label="Font",
-                                     command=lambda master=master:
-                                     self.open_font_window(master))
+                                     command=self.open_font_window)
+        #self.format_menu.add_command(label="Highlight",                       THESE
+        #                           command=self.master.text.highlight)        DO 
+        #self.format_menu.add_command(label="Style",                           NOT
+        #                           command=self.master.text.set_style)        WORK
         self.add_cascade(label="Format", menu=self.format_menu)
 
         self.view_menu = tk.Menu(self, tearoff=False)
@@ -146,67 +134,39 @@ class MenuBar(tk.Menu):
 
         self.help_menu = tk.Menu(self, tearoff=False)
         self.help_menu.add_command(label="Help [coming soon]")
-        self.help_menu.add_command(label="About Just Write (working title)",
+        self.help_menu.add_command(label="About Blank Page (working title)",
                                    command=self.open_about_window)
         self.add_cascade(label="Help", menu=self.help_menu)
-        
-        self.bind_all("<F5>", self.kb_shortcuts)
-        self.bind_all("<F6>", self.kb_shortcuts)
-        self.bind_all("<F7>", self.kb_shortcuts)
 
-    def kb_shortcuts(self, evt):
-        if evt.keycode == 116:
-            self.insert_datetime(evt.widget.master.master.master)
-        if evt.keycode == 117:
-            self.insert_time(evt.widget.master.master.master) 
-        if evt.keycode == 118:
-            self.insert_date(evt.widget.master.master.master)
-        
-    def set_button_state(self, evt, master):
+    def set_button_state(self, event=None):
         """
         Enables/disables the save, undo, redo, and select
         all menu options based on whether or not they can
         actually be used.
         """
-        if master.text_entry.edit_modified():
+        if self.master.text.edit_modified():
             self.file_menu.entryconfig(2, state="normal")
             self.edit_menu.entryconfig(0, state="normal")
         else:
             self.file_menu.entryconfig(2, state="disabled")
             self.edit_menu.entryconfig(0, state="disabled")
 
-        if len(master.text_entry.get("1.0", tk.END)) > 1:
+        if len(self.master.text.get("1.0", tk.END)) > 1:
             self.edit_menu.entryconfig(7, state="normal")
         else:
             self.edit_menu.entryconfig(7, state="disabled")
 
-    def add_scrolledtext(self, master):
-        """
-        Adds the scrolledtext box to the container frame.
-        """
-        if master.text_entry and self.master.text_entry.winfo_exists():
-            master.container.destroy()
-        master.container = tk.Frame(master)
-        master.container.pack(expand=True, fill="both")
-        master.hscrollbar = AutoScrollbar(master.container, orient=tk.HORIZONTAL)
-        master.text_entry = tkst.ScrolledText(master.container,
-                                              xscrollcommand=master.hscrollbar.set,
-                                              wrap=self.wrap_var.get(),
-                                              undo=True, maxundo=-1)
-        master.text_entry.pack(expand=True, fill="both")
-        master.hscrollbar.pack()
-
-    def new_file(self, master):
+    def new_file(self):
         """
         Creates a new file object.  Then clears container frame and creates a
         new one by calling 'add_scrolledtext'.
-        """
+        """      
         self.master.curr_file = File(join(dirname(realpath(__file__)) +
                                      "\\New File.txt"))
-        self.add_scrolledtext(master)
-        master.setup()
+        self.master.add_scrolledtext()
+        self.master.setup()
 
-    def open_file(self, master):
+    def open_file(self):
         """
         Destroys container frame and creates a new one by calling
         'add_scrolledtext'.  Inserts the data of that file into
@@ -214,103 +174,96 @@ class MenuBar(tk.Menu):
         object and sets the curr_file to that object.
         """
         file_to_open = filedialog.askopenfilename(defaultextension = "txt",
-                                      initialdir = master.curr_file.file_path,
+                                      initialdir = self.master.curr_file.file_path,
                                       filetypes=(("Text files", "*.txt"),
                                       ("All files", "*.*"))
                                     )
         if file_to_open:
             with open(file_to_open, "r") as f:
                 data = f.read()
-            master.curr_file = File(file_to_open)
-            self.add_scrolledtext(master)
-            master.text_entry.insert("1.0", data)
-            master.text_entry.edit_modified(False)
-            master.setup()
+            self.master.curr_file = File(file_to_open)
+            self.master.add_scrolledtext()
+            self.master.text.insert("1.0", data)
+            self.master.text.edit_modified(False)
+            self.master.setup()
 
-    def save_file(self, master):
+    def save_file(self):
         """
         Writes text to file and sets saved flag for curr_file to true.
         """
-        if master.menu.file_menu.entrycget(2, "state") == "normal":
-            with open(master.curr_file.file_path, "w+") as f:
-                f.write(master.text_entry.get("1.0", "end-1c"))
-                master.curr_file.saved = True
-                master.text_entry.edit_modified(False)
-                master.setup()
+        if self.file_menu.entrycget(2, "state") == "normal":
+            with open(self.master.curr_file.file_path, "w+") as f:
+                f.write(self.master.text.get("1.0", "end-1c"))
+                self.master.curr_file.saved = True
+                self.master.text.edit_modified(False)
+                self.master.setup()
         else:
-            self.saveas_file(master)
+            self.saveas_file()
 
-    def saveas_file(self, master):
+    def saveas_file(self):
         """
         Opens file dialog for user to save new file.
         """
-        data = master.text_entry.get("1.0", "end-1c")
+        data = self.master.text.get("1.0", "end-1c")
         save_location = filedialog.asksaveasfilename(defaultextension = "txt",
-                                     initialdir = master.curr_file.file_path,
+                                     initialdir = self.master.curr_file.file_path,
                                      filetypes=(("Text files", "*.txt"),
                                      ("All files", "*.*"))
                                     )
         if save_location:
             with open(save_location, "w+") as f:
                 f.write(data)
-            master.curr_file = File(save_location)
-            master.curr_file.saved = True
-            master.text_entry.edit_modified(False)
-            master.setup()
+            self.master.curr_file = File(save_location)
+            self.master.curr_file.saved = True
+            self.master.text.edit_modified(False)
+            self.master.setup()
 
-    def undo(self, master):
+    def undo(self):
         try:
-            master.text_entry.edit_undo()
+            self.master.text.event_generate("<<Undo>>")
             self.edit_menu.entryconfig(1, state="normal")
         except tk.TclError:
             self.edit_menu.entryconfig(0, state="disabled")
 
-    def redo(self, master):
+    def redo(self): # Won't disable itself after nothing more to 'redo'
         try:
-            master.text_entry.edit_redo()
+            self.master.text.event_generate("<<Redo>>")
         except tk.TclError:
             self.edit_menu.entryconfig(1, state="disabled")
 
     def cut(self, master):
-        master.text_entry.event_generate("<<Cut>>")
+        master.text.event_generate("<<Cut>>")
 
     def copy(self, master):
-        master.text_entry.event_generate("<<Copy>>")
+        master.text.event_generate("<<Copy>>")
 
     def paste(self, master):
-        master.text_entry.event_generate("<<Paste>>")
+        master.text.event_generate("<<Paste>>")
 
     def select_all(self, master):
-        master.text_entry.tag_add("sel","1.0","end")
-        
-    def insert_time(self, master):
-        self.curr_date = CustomDateTime()
-        master.text_entry.insert(master.text_entry.index(tk.INSERT), self.curr_date.get_time())
-        
-    def insert_date(self, master):
-        self.curr_date = CustomDateTime()
-        master.text_entry.insert(master.text_entry.index(tk.INSERT), self.curr_date.get_date())
-        
-    def insert_datetime(self, master):
-        self.curr_date = CustomDateTime()
-        master.text_entry.insert(master.text_entry.index(tk.INSERT), str(self.curr_date))
+        master.text.tag_add("sel","1.0","end")
 
-    def toggle_wrap(self, master):
-        """Turns word wrap on and off for text_entry."""
+    def insert_datetime(self, event=None):
+        self.curr_date = CustomDateTime()
+        self.master.text.insert(self.master.text.index(tk.INSERT),
+                                str(self.curr_date))
+
+    def toggle_wrap(self):
+        """Turns word wrap on and off for text."""
         if self.wrap_var.get() == "word":
             self.wrap_var.set("none")
         else:
             self.wrap_var.set("word")
 
-        master.text_entry.config(wrap=self.wrap_var.get())
+        self.master.text.config(wrap=self.wrap_var.get())
 
-    def open_font_window(self, master):
+    def open_font_window(self):
         """
         Opens a new window which allows the user to change the font
         of the scrolledtext widget.
         """
-        self.font_popup = FontWindow(master)
-               
+        self.font_popup = FontWindow(self.master)
+
     def toggle_statusbar(self, master):
         """Toggles the status bar at the bottom of the window."""
         if not self.statusbar_var.get():
@@ -323,16 +276,16 @@ class MenuBar(tk.Menu):
         """Displays the 'About' window."""
         self.about_popup = AboutWindow()
 
-
+        
 class StatusBar(tk.Frame):
     """
     Status bar for the bottom of the screen that shows
-    character count, column number and row (index) of 
+    character count, column number and row (index) of
     cursor.
     """
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-
+        self.master = master
         self.columnconfigure(0, weight=1)
         self.status_frame = tk.Frame(self, relief=tk.SUNKEN, bd=1)
         self.status_frame.grid(column=0, row=0, sticky="ew")
@@ -359,9 +312,9 @@ class StatusBar(tk.Frame):
         tk.Label(self.status_frame,
                  textvariable=self.curr_col).grid(column=6,row=0, sticky="e")
 
-        master.text_entry.bind_all("<Key>", lambda evt,
-                                   master=master: self.update_status(evt,
-                                                                     master))
+        #master.text.bind_all("<Key>", lambda evt,
+        #                           master=master: self.update_status(evt,
+        #                                                             master))
 
     def set(self, format, *args):
         self.label.config(text=format % args)
@@ -374,21 +327,21 @@ class StatusBar(tk.Frame):
     def update_status(self, evt, master):
         """
         Updates the info displayed in the status bar.
-        
+
         :params evt: Event object.
         :params master: Master window.
         """
-        self.position = master.text_entry.index(tk.INSERT).split(".")
-        self.char_count.set(len(master.text_entry.get("1.0", tk.END)) - 1)
+        self.position = master.text.index(tk.INSERT).split(".")
+        self.char_count.set(len(master.text.get("1.0", tk.END)) - 1)
         self.curr_line.set(self.position[0])
         self.curr_col.set(self.position[1])
 
-        
+
 class FontWindow(tk.Toplevel):
 
-    def __init__(self, master):
+    def __init__(self, master, selected=None):
         tk.Toplevel.__init__(self, master)
-
+        self.master = master
         self.title("Font")
         self.resizable(0, 0)
 
@@ -418,7 +371,6 @@ class FontWindow(tk.Toplevel):
         self.selected_font.grid(row=1, column=0)
         self.fonts_box.grid(row=2, column=0)
         self.font_frame.grid(row=0, column=0)
-
 
         styles = ["normal", "bold", "italic", "underline", "overstrike"]
 
@@ -500,15 +452,19 @@ class FontWindow(tk.Toplevel):
         self.sample_lbl.config(font=(self.font_var.get(), self.size_var.get(),
                                self.style_var.get()))
 
-    def set_font(self, master):
+    def set_font(self, master, txt=None):
         """
-        Sets the font, style, and size of the scrolledtext field.
+        Sets the font, style, and size of 'txt'.
         """
-        master.text_entry.config(font=(self.font_var.get(),
-                                 self.size_var.get(), self.style_var.get()))
+        if not txt:
+            txt = master.text
+
+        txt.config(font=(self.font_var.get(),
+                   self.size_var.get(), self.style_var.get()))
+            
         self.destroy()
 
-        
+
 class AboutWindow(tk.Toplevel):
     """
     Displays information about the application.
@@ -551,22 +507,52 @@ class AboutWindow(tk.Toplevel):
         """
         Opens link from 'evt' text in user's default
         browser.
-        
+
         :params evt: Event object.
         """
         open_new(evt.widget.cget("text"))
 
 
+class CustomText(tk.Text):
+    
+    def __init__(self, master, *args, **kwargs):
+        tk.Text.__init__(self, master, *args, **kwargs)
+        self.master = master
+        self.hscrollbar = AutoScrollbar(self,
+                                        orient=tk.HORIZONTAL)
+        self.vscrollbar = AutoScrollbar(self,
+                                        orient=tk.VERTICAL)   
+        self.config(wrap="none", undo=True,
+                         xscrollcommand=self.hscrollbar.set,
+                         yscrollcommand=self.vscrollbar.set)                                        
+                                    
+    def highlight(self):
+        if self.master.master.text.tag_ranges("sel"):
+            selected = self.get(tk.SEL_FIRST, tk.SEL_LAST)
+            if "highlight" in self.tag_names():
+                self.tag_delete("highlight")
+            self.tag_add("highlight", tk.SEL_FIRST, tk.SEL_LAST)
+            self.tag_config("highlight", background="yellow")
+                            
+    def set_style(self):
+        if self.tag_ranges("sel"):
+            selected = self.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.master.font_window = self.master.menu.open_font_window(self, selected)
+            if "styled" in self.tag_names():
+                self.tag_delete("styled")
+            self.tag_add("styled", tk.SEL_FIRST, tk.SEL_LAST)
+            self.tag_config("styled", font=72)
+                        
+            
 class AutoScrollbar(tk.Scrollbar):
     """Scrollbar that will only display when needed."""
-    
+
     def set(self, lo, hi):
         if float(lo) <= 0.0 and float(hi) >= 1.0:
             self.pack_forget()
         else:
             if self.cget("orient") == tk.HORIZONTAL:
-                self.pack(fill=tk.X)
+                self.pack(side=tk.BOTTOM, fill=tk.X)
             else:
-                self.pack(fill=tk.Y)
-        tk.Scrollbar.set(self, lo, hi)
-
+                self.pack(side=tk.RIGHT, fill=tk.Y)
+        tk.Scrollbar.set(self, lo, hi)            
