@@ -5,10 +5,10 @@ from os.path import basename, dirname, realpath, join
 from string import whitespace
 from webbrowser import open_new
 
-from jnlogic import File
+from logic import CustomDateTime, File
 
 
-class Main(tk.Tk):
+class Main(tk.Tk): # gtg
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
@@ -53,11 +53,12 @@ class Main(tk.Tk):
 
     def setup(self):
         """
-        Currently this only sets the title for the window.
+        Currently this only sets the title for the window 
+        and gives focus to 'text_entry'.
         Planned to do more later.
         """
-        self.title("jNote - " + self.curr_file.file_name)
-
+        self.title("Just Write (working title) - " + self.curr_file.file_name)
+        self.text_entry.focus_force()
 
 class MenuBar(tk.Menu):
 
@@ -111,6 +112,20 @@ class MenuBar(tk.Menu):
                                    self.select_all(master),
                                    accelerator="Ctrl+A", state="disabled")
         self.add_cascade(label="Edit", menu=self.edit_menu)
+        
+        self.insert_menu = tk.Menu(self, tearoff=False)
+        self.dt_submenu = tk.Menu(self, tearoff=False)
+        self.dt_submenu.add_command(label="Time",
+                           command=lambda master=master:
+                           self.insert_time(master), accelerator="F5")
+        self.dt_submenu.add_command(label="Date",
+                           command=lambda master=master:
+                           self.insert_date(master), accelerator="F6")     
+        self.dt_submenu.add_command(label="Date & Time",
+                            command=lambda master=master:
+                            self.insert_datetime(master), accelerator="F7")
+        self.insert_menu.add_cascade(label="Date & Time", menu=self.dt_submenu)
+        self.add_cascade(label="Insert", menu=self.insert_menu)                           
 
         self.format_menu = tk.Menu(self, tearoff=False)
         self.format_menu.add_checkbutton(label="Word Wrap",
@@ -131,10 +146,22 @@ class MenuBar(tk.Menu):
 
         self.help_menu = tk.Menu(self, tearoff=False)
         self.help_menu.add_command(label="Help [coming soon]")
-        self.help_menu.add_command(label="About jNote",
+        self.help_menu.add_command(label="About Just Write (working title)",
                                    command=self.open_about_window)
         self.add_cascade(label="Help", menu=self.help_menu)
+        
+        self.bind_all("<F5>", self.kb_shortcuts)
+        self.bind_all("<F6>", self.kb_shortcuts)
+        self.bind_all("<F7>", self.kb_shortcuts)
 
+    def kb_shortcuts(self, evt):
+        if evt.keycode == 116:
+            self.insert_datetime(evt.widget.master.master.master)
+        if evt.keycode == 117:
+            self.insert_time(evt.widget.master.master.master) 
+        if evt.keycode == 118:
+            self.insert_date(evt.widget.master.master.master)
+        
     def set_button_state(self, evt, master):
         """
         Enables/disables the save, undo, redo, and select
@@ -150,7 +177,6 @@ class MenuBar(tk.Menu):
 
         if len(master.text_entry.get("1.0", tk.END)) > 1:
             self.edit_menu.entryconfig(7, state="normal")
-
         else:
             self.edit_menu.entryconfig(7, state="disabled")
 
@@ -255,9 +281,22 @@ class MenuBar(tk.Menu):
         master.text_entry.event_generate("<<Paste>>")
 
     def select_all(self, master):
-        master.text_entry.tag_add("sel",'1.0','end')
+        master.text_entry.tag_add("sel","1.0","end")
+        
+    def insert_time(self, master):
+        self.curr_date = CustomDateTime()
+        master.text_entry.insert(master.text_entry.index(tk.INSERT), self.curr_date.get_time())
+        
+    def insert_date(self, master):
+        self.curr_date = CustomDateTime()
+        master.text_entry.insert(master.text_entry.index(tk.INSERT), self.curr_date.get_date())
+        
+    def insert_datetime(self, master):
+        self.curr_date = CustomDateTime()
+        master.text_entry.insert(master.text_entry.index(tk.INSERT), str(self.curr_date))
 
     def toggle_wrap(self, master):
+        """Turns word wrap on and off for text_entry."""
         if self.wrap_var.get() == "word":
             self.wrap_var.set("none")
         else:
@@ -286,7 +325,11 @@ class MenuBar(tk.Menu):
 
 
 class StatusBar(tk.Frame):
-
+    """
+    Status bar for the bottom of the screen that shows
+    character count, column number and row (index) of 
+    cursor.
+    """
     def __init__(self, master):
         tk.Frame.__init__(self, master)
 
@@ -329,11 +372,18 @@ class StatusBar(tk.Frame):
         self.label.update_idletasks()
 
     def update_status(self, evt, master):
+        """
+        Updates the info displayed in the status bar.
+        
+        :params evt: Event object.
+        :params master: Master window.
+        """
         self.position = master.text_entry.index(tk.INSERT).split(".")
         self.char_count.set(len(master.text_entry.get("1.0", tk.END)) - 1)
         self.curr_line.set(self.position[0])
         self.curr_col.set(self.position[1])
 
+        
 class FontWindow(tk.Toplevel):
 
     def __init__(self, master):
@@ -460,14 +510,17 @@ class FontWindow(tk.Toplevel):
 
         
 class AboutWindow(tk.Toplevel):
+    """
+    Displays information about the application.
+    """
     def __init__(self):
         tk.Toplevel.__init__(self)
-        self.title("About jNote")
+        self.title("About Blank Page")
         self.resizable(0, 0)
         self.about_frame = tk.Frame(self)
         self.about_frame.grid(column=0, row=0)
 
-        tk.Label(self.about_frame, text="jNote", font="bold").grid(column=0,
+        tk.Label(self.about_frame, text="Blank Page", font="bold").grid(column=0,
                                                                    row=0)
         ttk.Separator(self.about_frame).grid(column=0, row=1, columnspan=2,
                                              sticky="ew")
@@ -486,7 +539,7 @@ class AboutWindow(tk.Toplevel):
                                                          sticky="w")
         self.link2 = tk.Label(
                     self.about_frame,
-                    text="https://github.com/jclane/jnote/blob/master/LICENSE",
+                    text="https://github.com/jclane/blank-page/blob/master/LICENSE",
                     fg="blue", cursor="hand2"
                     )
         self.link2.grid(column=1, row=5, sticky="w")
@@ -495,11 +548,18 @@ class AboutWindow(tk.Toplevel):
         self.link2.bind("<Button-1>", self.open_website)
 
     def open_website(self, evt):
+        """
+        Opens link from 'evt' text in user's default
+        browser.
+        
+        :params evt: Event object.
+        """
         open_new(evt.widget.cget("text"))
 
 
 class AutoScrollbar(tk.Scrollbar):
-
+    """Scrollbar that will only display when needed."""
+    
     def set(self, lo, hi):
         if float(lo) <= 0.0 and float(hi) >= 1.0:
             self.pack_forget()
@@ -510,7 +570,3 @@ class AutoScrollbar(tk.Scrollbar):
                 self.pack(fill=tk.Y)
         tk.Scrollbar.set(self, lo, hi)
 
-
-if __name__ == "__main__":
-    app = Main()
-    app.mainloop()
