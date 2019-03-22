@@ -118,10 +118,10 @@ class MenuBar(tk.Menu):
                                          command=self.toggle_wrap)
         self.format_menu.add_command(label="Font",
                                      command=self.open_font_window)
-        #self.format_menu.add_command(label="Highlight",                       THESE
-        #                           command=self.master.text.highlight)        DO 
-        #self.format_menu.add_command(label="Style",                           NOT
-        #                           command=self.master.text.set_style)        WORK
+        self.format_menu.add_command(label="Highlight", 
+                                     command=self.master.text.highlight)      
+        self.format_menu.add_command(label="Style",                          
+                                     command=self.master.text.set_style)       
         self.add_cascade(label="Format", menu=self.format_menu)
 
         self.view_menu = tk.Menu(self, tearoff=False)
@@ -237,8 +237,8 @@ class MenuBar(tk.Menu):
     def copy(self, master):
         master.text.event_generate("<<Copy>>")
 
-    def paste(self, master):
-        master.text.event_generate("<<Paste>>")
+    def paste(self):
+        self.master.text.event_generate("<<Paste>>")
 
     def select_all(self, master):
         master.text.tag_add("sel","1.0","end")
@@ -263,6 +263,7 @@ class MenuBar(tk.Menu):
         of the scrolledtext widget.
         """
         self.font_popup = FontWindow(self.master)
+        self.font_popup.destroy()
 
     def toggle_statusbar(self, master):
         """Toggles the status bar at the bottom of the window."""
@@ -461,8 +462,8 @@ class FontWindow(tk.Toplevel):
 
         txt.config(font=(self.font_var.get(),
                    self.size_var.get(), self.style_var.get()))
-            
-        self.destroy()
+        return (self.font_var.get(), self.size_var.get(), self.style_var.get())
+        
 
 
 class AboutWindow(tk.Toplevel):
@@ -528,20 +529,20 @@ class CustomText(tk.Text):
                                     
     def highlight(self):
         if self.master.master.text.tag_ranges("sel"):
-            selected = self.get(tk.SEL_FIRST, tk.SEL_LAST)
-            if "highlight" in self.tag_names():
-                self.tag_delete("highlight")
-            self.tag_add("highlight", tk.SEL_FIRST, tk.SEL_LAST)
-            self.tag_config("highlight", background="yellow")
+            selected = self.master.master.text.get(tk.SEL_FIRST, tk.SEL_LAST)
+            if "highlight" in self.master.master.text.tag_names():
+                self.master.master.text.tag_delete("highlight")
+            self.master.master.text.tag_add("highlight", tk.SEL_FIRST, tk.SEL_LAST)
+            self.master.master.text.tag_config("highlight", background="yellow")
                             
     def set_style(self):
-        if self.tag_ranges("sel"):
-            selected = self.get(tk.SEL_FIRST, tk.SEL_LAST)
-            self.master.font_window = self.master.menu.open_font_window(self, selected)
-            if "styled" in self.tag_names():
-                self.tag_delete("styled")
-            self.tag_add("styled", tk.SEL_FIRST, tk.SEL_LAST)
-            self.tag_config("styled", font=72)
+        if self.master.master.text.tag_ranges("sel"):
+            selected = self.master.master.text.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.master.font_window = self.master.master.menu.open_font_window()
+            if "styled" in self.master.master.text.tag_names():
+                self.master.master.text.tag_delete("styled")
+            self.master.master.text.tag_add("styled", tk.SEL_FIRST, tk.SEL_LAST)
+            self.master.master.text.tag_config("styled", font=72)
                         
             
 class AutoScrollbar(tk.Scrollbar):
